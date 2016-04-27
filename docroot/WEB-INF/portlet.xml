@@ -2,8 +2,8 @@
 
 <portlet-app xmlns="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd" version="2.0">
 	<portlet>
-		<portlet-name>new-kb-article</portlet-name>
-		<display-name>New KB Article</display-name>
+		<portlet-name>liferay-jira-connector</portlet-name>
+		<display-name>Liferay Jira Connector</display-name>
 		<portlet-class>com.liferay.custom.KnowledgeBaseArticleRequest</portlet-class>
 		<init-param>
 			<name>view-template</name>
@@ -22,9 +22,9 @@
 			<mime-type>text/html</mime-type>
 		</supports>
 		<portlet-info>
-			<title>New KB Article</title>
-			<short-title>New KB Article</short-title>
-			<keywords>New KB Article</keywords>
+			<title>Liferay Jira Connector</title>
+			<short-title>Liferay Jira Connector</short-title>
+			<keywords>Liferay Jira Connector</keywords>
 		</portlet-info>
 		<security-role-ref>
 			<role-name>administrator</role-name>
