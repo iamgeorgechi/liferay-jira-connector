@@ -8,7 +8,5 @@ public interface Constants {
 
 	public static final Long ISSUE_TYPE_ID_IDEA = 10102L;
 
-	public static final String JIRA_SERVER = "https://issues.liferay.com";
-
 	public static final String NONE = "None";
 }

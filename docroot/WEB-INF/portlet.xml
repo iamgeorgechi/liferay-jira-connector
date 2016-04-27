@@ -4,7 +4,7 @@
 	<portlet>
 		<portlet-name>liferay-jira-connector</portlet-name>
 		<display-name>Liferay Jira Connector</display-name>
-		<portlet-class>com.liferay.custom.KnowledgeBaseArticleRequest</portlet-class>
+		<portlet-class>com.liferay.custom.LiferayJiraConnector</portlet-class>
 		<init-param>
 			<name>view-template</name>
 			<value>/html/view.jsp</value>

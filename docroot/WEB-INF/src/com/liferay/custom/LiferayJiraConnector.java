@@ -44,7 +44,7 @@ import java.util.Iterator;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 
-public class KnowledgeBaseArticleRequest extends MVCPortlet {
+public class LiferayJiraConnector extends MVCPortlet {
 	@Override
 	public void processAction(ActionRequest actionRequest, ActionResponse actionResponse)
 			throws IOException, PortletException {
@@ -69,12 +69,14 @@ public class KnowledgeBaseArticleRequest extends MVCPortlet {
 			"jiraUserName", StringPool.BLANK));
 		String jiraPassword = GetterUtil.getString(portletPreferences.getValue(
 			"jiraPassword", StringPool.BLANK));
+		String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue(
+			"jiraServerUrl", StringPool.BLANK));
 
 		String issueKey = actionRequest.getParameter("issueKey");
 
 		JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
 		JiraRestClient restClient = factory.createWithBasicHttpAuthentication(
-			URI.create(Constants.JIRA_SERVER), jiraUserName, jiraPassword);
+			URI.create(jiraServerUrl), jiraUserName, jiraPassword);
 		IssueRestClient issueRestClient = restClient.getIssueClient();
 
 		Promise<Issue> issuePromise = issueRestClient.getIssue(issueKey);
@@ -241,6 +243,6 @@ public class KnowledgeBaseArticleRequest extends MVCPortlet {
 	}
 
 	private static Log _log = LogFactoryUtil.getLog(
-		KnowledgeBaseArticleRequest.class);
+		LiferayJiraConnector.class);
 
 }
