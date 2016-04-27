@@ -46,8 +46,9 @@ import java.util.concurrent.ExecutionException;
 
 public class LiferayJiraConnector extends MVCPortlet {
 	@Override
-	public void processAction(ActionRequest actionRequest, ActionResponse actionResponse)
-			throws IOException, PortletException {
+	public void processAction(
+			ActionRequest actionRequest, ActionResponse actionResponse)
+		throws IOException, PortletException {
 
 		String tab = actionRequest.getParameter("tab");
 
@@ -62,7 +63,9 @@ public class LiferayJiraConnector extends MVCPortlet {
 		super.processAction(actionRequest, actionResponse);
 	}
 
-	private void searchJira(ActionRequest actionRequest, ActionResponse actionResponse) {
+	private void searchJira(
+		ActionRequest actionRequest, ActionResponse actionResponse) {
+
 		PortletPreferences portletPreferences = actionRequest.getPreferences();
 
 		String jiraUserName = GetterUtil.getString(portletPreferences.getValue(
@@ -72,65 +75,91 @@ public class LiferayJiraConnector extends MVCPortlet {
 		String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue(
 			"jiraServerUrl", StringPool.BLANK));
 
-		String issueKey = actionRequest.getParameter("issueKey");
+		String userInput = actionRequest.getParameter("userInput");
 
 		JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
 		JiraRestClient restClient = factory.createWithBasicHttpAuthentication(
 			URI.create(jiraServerUrl), jiraUserName, jiraPassword);
 		IssueRestClient issueRestClient = restClient.getIssueClient();
 
-		Promise<Issue> issuePromise = issueRestClient.getIssue(issueKey);
+		Promise<Issue> issuePromise = issueRestClient.getIssue(userInput);
 
 		try {
 			Issue issue = issuePromise.get();
 
 			actionRequest.setAttribute("issueKey", issue.getKey());
 			actionRequest.setAttribute("issueSummary", issue.getSummary());
-			actionRequest.setAttribute("issueAssignee", issue.getAssignee().getDisplayName());
-			actionRequest.setAttribute("issueReporter", issue.getReporter().getDisplayName());
+			actionRequest.setAttribute(
+				"issueAssignee", issue.getAssignee().getDisplayName());
+			actionRequest.setAttribute(
+				"issueReporter", issue.getReporter().getDisplayName());
 
 			BasicStatus status = issue.getStatus();
 			actionRequest.setAttribute("issueStatus", status.getName());
 
-			Iterable<BasicComponent> basicComponents = issue.getComponents();
-			Iterator<BasicComponent> basicComponentIterator = basicComponents.iterator();
-			StringBundler issueComponents = new StringBundler();
-			while (basicComponentIterator.hasNext()) {
-				if (issueComponents.length() == 0) {
-					issueComponents.append(basicComponentIterator.next().getName());
+			Iterator<BasicComponent> compIterator =
+				issue.getComponents().iterator();
+			StringBundler components = new StringBundler();
+			while (compIterator.hasNext()) {
+				if (components.length() == 0) {
+					components.append(compIterator.next().getName());
 				}
 				else {
-					issueComponents.append(", " + basicComponentIterator.next().getName());
+					components.append(", " + compIterator.next().getName());
 				}
 			}
-			actionRequest.setAttribute("issueComponents", issueComponents.toString());
+			actionRequest.setAttribute(
+				"issueComponents", components.toString());
 
 			BasicIssueType issueType = issue.getIssueType();
 			actionRequest.setAttribute("issueType", issueType.getName());
 
-			actionRequest.setAttribute("issuePriority", issue.getPriority().getName());
+			actionRequest.setAttribute(
+				"issuePriority", issue.getPriority().getName());
 
-			DateTimeFormatter builder = DateTimeFormat.forPattern(Constants.DATETIME_FORMAT);
-			DateTime createDateTime = issue.getCreationDate().withZone(DateTimeZone.forTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE_AMERICA_LOS_ANGELES)));
-			DateTime updateDateTime = issue.getUpdateDate().withZone(DateTimeZone.forTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE_AMERICA_LOS_ANGELES)));
+			DateTimeFormatter builder = DateTimeFormat.forPattern(
+				Constants.DATETIME_FORMAT);
+			DateTime createDateTime = issue.getCreationDate().withZone(
+				DateTimeZone.forTimeZone(TimeZone.getTimeZone(
+					Constants.TIMEZONE_AMERICA_LOS_ANGELES)));
+			DateTime updateDateTime = issue.getUpdateDate().withZone(
+				DateTimeZone.forTimeZone(TimeZone.getTimeZone(
+					Constants.TIMEZONE_AMERICA_LOS_ANGELES)));
 
-			actionRequest.setAttribute("issueCreateDateTime", createDateTime.toString(builder));
-			actionRequest.setAttribute("issueUpdateDateTime", updateDateTime.toString(builder));
+			actionRequest.setAttribute(
+				"issueCreateDateTime", createDateTime.toString(builder));
+			actionRequest.setAttribute(
+				"issueUpdateDateTime", updateDateTime.toString(builder));
 
-			IssueField issueField = issue.getFieldByName(Constants.CUSTOM_FIELD_EPIC_LINK);
-			actionRequest.setAttribute("issueEpicLink", issueField.getValue().toString());
+			IssueField issueField = issue.getFieldByName(
+				Constants.CUSTOM_FIELD_EPIC_LINK);
+			actionRequest.setAttribute(
+				"issueEpicLink", issueField.getValue().toString());
 
-			actionRequest.setAttribute("issueDescription", issue.getDescription());
+			actionRequest.setAttribute(
+				"issueDescription", issue.getDescription());
 		}
 		catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		catch (ExecutionException e) {
-			e.printStackTrace();
+			if (e.getMessage().contains(Constants.ERROR_403)) {
+				actionRequest.setAttribute("userInput", userInput);
+				SessionErrors.add(actionRequest, "forbidden");
+			}
+			else if (e.getMessage().contains(Constants.ERROR_404)) {
+				actionRequest.setAttribute("userInput", userInput);
+				SessionErrors.add(actionRequest, "issueDoesNotExist");
+			}
+			else if (e.getMessage().contains(Constants.ERROR_405)) {
+				actionRequest.setAttribute("userInput", userInput);
+				SessionErrors.add(actionRequest, "emptyUserInput");
+			}
 		}
 	}
 
-	private void createIssue(ActionRequest actionRequest, ActionResponse actionResponse) {
+	private void createIssue(
+		ActionRequest actionRequest, ActionResponse actionResponse) {
 
 		PortletPreferences portletPreferences = actionRequest.getPreferences();
 

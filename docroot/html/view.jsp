@@ -1,7 +1,6 @@
 <%@ include file="/html/init.jsp" %>
 
 <liferay-ui:success key="success" message="Your request completed successfully." />
-<liferay-ui:error key="error" message="The server was unable to complete your request at this time. Please try again later." />
 
 <%
 String tabs1 = ParamUtil.getString(request, "tabs1", "Search JIRA");
@@ -25,13 +24,13 @@ if (tabs1.equals("Search JIRA")) {
 <h4>This portlet fetches information from JIRA.</h4><br />
 
 <%
-String issueKey = "Enter the issue key";
+String userInput = "Enter the issue key";
 %>
 
 <aui:form action="<%= searchJiraURL %>" method="post">
 	<aui:input name="companyId" type="hidden" value="<%= company.getCompanyId() %>" />
 	<aui:input name="tab" type="hidden" value="<%= tabs1 %>" />
-	<aui:input name="issueKey" label="<%= issueKey %>" />
+	<aui:input name="userInput" label="<%= userInput %>" />
 	<aui:button type="submit" />
 </aui:form>
 
