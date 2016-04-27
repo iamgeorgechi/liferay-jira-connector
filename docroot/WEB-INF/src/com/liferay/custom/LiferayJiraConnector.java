@@ -111,8 +111,8 @@ public class LiferayJiraConnector extends MVCPortlet {
 			actionRequest.setAttribute("issuePriority", issue.getPriority().getName());
 
 			DateTimeFormatter builder = DateTimeFormat.forPattern(Constants.DATETIME_FORMAT);
-			DateTime createDateTime = issue.getCreationDate().withZone(DateTimeZone.forTimeZone(TimeZone.getTimeZone("America/Los_Angeles")));
-			DateTime updateDateTime = issue.getUpdateDate().withZone(DateTimeZone.forTimeZone(TimeZone.getTimeZone("America/Los_Angeles")));
+			DateTime createDateTime = issue.getCreationDate().withZone(DateTimeZone.forTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE_AMERICA_LOS_ANGELES)));
+			DateTime updateDateTime = issue.getUpdateDate().withZone(DateTimeZone.forTimeZone(TimeZone.getTimeZone(Constants.TIMEZONE_AMERICA_LOS_ANGELES)));
 
 			actionRequest.setAttribute("issueCreateDateTime", createDateTime.toString(builder));
 			actionRequest.setAttribute("issueUpdateDateTime", updateDateTime.toString(builder));

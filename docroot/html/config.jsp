@@ -5,7 +5,7 @@
 <%
 String jiraUserName = GetterUtil.getString(portletPreferences.getValue("jiraUserName", StringPool.BLANK));
 String jiraPassword = GetterUtil.getString(portletPreferences.getValue("jiraPassword", StringPool.BLANK));
-String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue("jiraServerUrl", "https://issues.liferay.com"));
+String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue("jiraServerUrl", StringPool.BLANK));
 %>
 
 <aui:form action="<%= configurationURL %>" method="post">
