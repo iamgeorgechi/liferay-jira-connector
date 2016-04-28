@@ -5,7 +5,7 @@
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd"
 		>
-	<info module="new-kb-article-portlet" organisation="com.liferay" />
+	<info module="liferay-jira-connector-portlet" organisation="com.liferay" />
 
 	<dependencies defaultconf="default">
 		<dependency name="atlassian-event" org="com.atlassian.event" rev="2.2.0" />
