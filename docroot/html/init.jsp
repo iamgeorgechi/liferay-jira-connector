@@ -16,5 +16,25 @@
 <%@ page import="java.util.List" %>
 <%@ page import="com.liferay.portal.kernel.util.ParamUtil" %>
 
+<%@ page import="javax.portlet.PortletPreferences" %>
+<%@ page import="com.atlassian.jira.rest.client.api.JiraRestClientFactory" %>
+<%@ page import="com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory" %>
+<%@ page import="com.atlassian.jira.rest.client.api.JiraRestClient" %>
+<%@ page import="java.net.URI" %>
+<%@ page import="com.atlassian.jira.rest.client.api.ProjectRestClient" %>
+<%@ page import="com.atlassian.jira.rest.client.api.domain.Project" %>
+<%@ page import="com.atlassian.util.concurrent.Promise" %>
+<%@ page import="com.atlassian.jira.rest.client.api.domain.BasicProject" %>
+<%@ page import="java.util.Iterator" %>
+
+<%@ page import="javax.portlet.PortletURL" %>
+<%@ page import="com.liferay.portlet.PortletURLUtil" %>
+
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="com.atlassian.jira.rest.client.api.domain.IssueType" %>
+<%@ page import="com.atlassian.jira.rest.client.api.domain.BasicComponent" %>
+<%@ page import="java.util.Iterator" %>
+
+
 <portlet:defineObjects />
 <liferay-theme:defineObjects />

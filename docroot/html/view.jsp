@@ -23,14 +23,9 @@ if (tabs1.equals("Search JIRA")) {
 
 <h4>This portlet fetches information from JIRA.</h4><br />
 
-<%
-String userInput = "Enter the issue key";
-%>
-
 <aui:form action="<%= searchJiraURL %>" method="post">
-	<aui:input name="companyId" type="hidden" value="<%= company.getCompanyId() %>" />
 	<aui:input name="tab" type="hidden" value="<%= tabs1 %>" />
-	<aui:input name="userInput" label="<%= userInput %>" />
+	<aui:input name="userInput" label="Issue Key" />
 	<aui:button type="submit" />
 </aui:form>
 
@@ -39,23 +34,43 @@ String userInput = "Enter the issue key";
 
 if (tabs1.equals("Create JIRA Issue")) {
 %>
-<portlet:actionURL var="createIssueURL">
-	<portlet:param name="mvcPath" value="/html/view.jsp" />
+<portlet:actionURL var="selectProjectURL">
+	<portlet:param name="mvcPath" value="/html/createIssueForm.jsp" />
 </portlet:actionURL>
 
 <h4>This portlet creates an issue in JIRA</h4><br />
 
 <%
-String numberOfSitesLabel = "Enter the number of sites you would like to create";
-String baseSiteNameLabel = "Enter the base name for the sites";
+PortletURL currentURLObj = PortletURLUtil.getCurrent(liferayPortletRequest, liferayPortletResponse);
+
+String currentURL = currentURLObj.toString();
+String project = "Project";
+
+String jiraUserName = GetterUtil.getString(portletPreferences.getValue("jiraUserName", StringPool.BLANK));
+String jiraPassword = GetterUtil.getString(portletPreferences.getValue("jiraPassword", StringPool.BLANK));
+String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue("jiraServerUrl", StringPool.BLANK));
+JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+JiraRestClient restClient = factory.createWithBasicHttpAuthentication(URI.create(jiraServerUrl), jiraUserName, jiraPassword);
+ProjectRestClient projectRestClient = restClient.getProjectClient();
+
+Promise<Iterable<BasicProject>> allProjects = projectRestClient.getAllProjects();
+Iterator<BasicProject> basicProjectIterator = allProjects.claim().iterator();
 %>
 
-<aui:form action="<%= createIssueURL %>" method="post">
-	<aui:input name="companyId" type="hidden" value="<%= company.getCompanyId() %>" />
-	<aui:input name="tab" type="hidden" value="<%= tabs1 %>" />
-	<aui:input name="numberOfSites" label="<%= numberOfSitesLabel %>" /><br />
-	<aui:input name="baseSiteName" label="<%= baseSiteNameLabel %>" /><br />
-
+<aui:form action="<%= selectProjectURL %>" method="post">
+	<aui:input name="tab" type="hidden" value="Select Project" />
+	<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
+	<aui:select id="projectSelect" name="projectKey" label="<%= project %>" >
+		<aui:option label="" />
+		<%
+		while (basicProjectIterator.hasNext()) {
+			BasicProject currProject = basicProjectIterator.next();
+		%>
+			<aui:option label="<%= currProject.getName() %>" value="<%= currProject.getKey() %>" />
+		<%
+		}
+		%>
+	</aui:select>
 	<aui:button type="submit" />
 </aui:form>
 

@@ -14,5 +14,7 @@ public interface Constants {
 
 	public static final Long ISSUE_TYPE_ID_IDEA = 10102L;
 
+	public static final String ISSUE_TYPE_SUB_TASK = "Sub-Task";
+
 	public static final String TIMEZONE_AMERICA_LOS_ANGELES = "America/Los_Angeles";
 }

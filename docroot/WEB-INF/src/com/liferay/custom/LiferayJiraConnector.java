@@ -3,6 +3,7 @@ package com.liferay.custom;
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
+import com.atlassian.jira.rest.client.api.OptionalIterable;
 import com.atlassian.jira.rest.client.api.ProjectRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicComponent;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
@@ -10,12 +11,12 @@ import com.atlassian.jira.rest.client.api.domain.BasicIssueType;
 import com.atlassian.jira.rest.client.api.domain.BasicStatus;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.jira.rest.client.api.domain.IssueField;
+import com.atlassian.jira.rest.client.api.domain.IssueType;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.atlassian.util.concurrent.Promise;
-import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.SessionErrors;
@@ -23,11 +24,6 @@ import com.liferay.portal.kernel.servlet.SessionMessages;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
-import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.model.User;
-import com.liferay.portal.service.UserLocalServiceUtil;
-import com.liferay.portlet.asset.model.AssetCategory;
-import com.liferay.portlet.asset.service.AssetCategoryLocalServiceUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -40,6 +36,7 @@ import javax.portlet.PortletException;
 import javax.portlet.PortletPreferences;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
@@ -53,9 +50,14 @@ public class LiferayJiraConnector extends MVCPortlet {
 		String tab = actionRequest.getParameter("tab");
 
 		if (tab.equals("Search JIRA")) {
-			searchJira(actionRequest, actionResponse);
+			String userInput = actionRequest.getParameter("userInput");
+
+			searchJira(actionRequest, userInput);
 		}
-		else if (tab.equals("Create Sites")) {
+		else if (tab.equals("Select Project")) {
+			selectProject(actionRequest, actionResponse);
+		}
+		else if (tab.equals("Create JIRA Issue")) {
 			createIssue(actionRequest, actionResponse);
 		}
 
@@ -64,25 +66,12 @@ public class LiferayJiraConnector extends MVCPortlet {
 	}
 
 	private void searchJira(
-		ActionRequest actionRequest, ActionResponse actionResponse) {
+		ActionRequest actionRequest, String key) {
 
-		PortletPreferences portletPreferences = actionRequest.getPreferences();
-
-		String jiraUserName = GetterUtil.getString(portletPreferences.getValue(
-			"jiraUserName", StringPool.BLANK));
-		String jiraPassword = GetterUtil.getString(portletPreferences.getValue(
-			"jiraPassword", StringPool.BLANK));
-		String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue(
-			"jiraServerUrl", StringPool.BLANK));
-
-		String userInput = actionRequest.getParameter("userInput");
-
-		JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-		JiraRestClient restClient = factory.createWithBasicHttpAuthentication(
-			URI.create(jiraServerUrl), jiraUserName, jiraPassword);
+		JiraRestClient restClient = jiraAuthenticate(actionRequest);
 		IssueRestClient issueRestClient = restClient.getIssueClient();
 
-		Promise<Issue> issuePromise = issueRestClient.getIssue(userInput);
+		Promise<Issue> issuePromise = issueRestClient.getIssue(key);
 
 		try {
 			Issue issue = issuePromise.get();
@@ -144,101 +133,94 @@ public class LiferayJiraConnector extends MVCPortlet {
 		}
 		catch (ExecutionException e) {
 			if (e.getMessage().contains(Constants.ERROR_403)) {
-				actionRequest.setAttribute("userInput", userInput);
+				actionRequest.setAttribute("userInput", key);
 				SessionErrors.add(actionRequest, "forbidden");
 			}
 			else if (e.getMessage().contains(Constants.ERROR_404)) {
-				actionRequest.setAttribute("userInput", userInput);
+				actionRequest.setAttribute("userInput", key);
 				SessionErrors.add(actionRequest, "issueDoesNotExist");
 			}
 			else if (e.getMessage().contains(Constants.ERROR_405)) {
-				actionRequest.setAttribute("userInput", userInput);
+				actionRequest.setAttribute("userInput", key);
 				SessionErrors.add(actionRequest, "emptyUserInput");
 			}
 		}
 	}
 
+	private void selectProject(
+		ActionRequest actionRequest, ActionResponse actionResponse) {
+
+		String projectKey = actionRequest.getParameter("projectKey");
+		String redirect = actionRequest.getParameter("redirect");
+
+		JiraRestClient restClient = jiraAuthenticate(actionRequest);
+		ProjectRestClient projectRestClient = restClient.getProjectClient();
+		Promise<Project> projectPromise = projectRestClient.getProject(
+			projectKey);
+
+		Project jiraProject = projectPromise.claim();
+		OptionalIterable<IssueType> issueTypesIterable =
+			jiraProject.getIssueTypes();
+		Iterator<IssueType> issueTypeIterator = issueTypesIterable.iterator();
+		ArrayList<IssueType> issueTypes = new ArrayList<IssueType>();
+		while (issueTypeIterator.hasNext()) {
+			IssueType currIssueType = issueTypeIterator.next();
+			if (!currIssueType.getName().contains(
+					Constants.ISSUE_TYPE_SUB_TASK)) {
+				issueTypes.add(currIssueType);
+			}
+		}
+
+		Iterable<BasicComponent> compIterable = jiraProject.getComponents();
+		Iterator<BasicComponent> compIterator = compIterable.iterator();
+
+		actionRequest.setAttribute("compIterator", compIterator);
+		actionRequest.setAttribute("issueTypes", issueTypes);
+		actionRequest.setAttribute("projectName", jiraProject.getName());
+		actionRequest.setAttribute("redirectUrl", redirect);
+		actionRequest.setAttribute("projectKey", projectKey);
+	}
+
 	private void createIssue(
 		ActionRequest actionRequest, ActionResponse actionResponse) {
 
-		PortletPreferences portletPreferences = actionRequest.getPreferences();
-
-		String jiraUserName = GetterUtil.getString(portletPreferences.getValue(
-			"jiraUserName", StringPool.BLANK));
-		String jiraPassword = GetterUtil.getString(portletPreferences.getValue(
-			"jiraPassword", StringPool.BLANK));
-		String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue(
-			"jiraServerUrl", "https://issues.liferay.com"));
-		String jiraProjectKey = GetterUtil.getString(
-			portletPreferences.getValue("jiraProjectKey", StringPool.BLANK));
-
-		String guestName = actionRequest.getParameter("guestName");
-		String guestEmail = actionRequest.getParameter("guestEmail");
-		long companyId = Long.parseLong(actionRequest.getParameter(
-			"companyId"));
-		String reporterUserName = actionRequest.getParameter(
-			"reporterUserName");
-		String reporterUserEmail = actionRequest.getParameter(
-			"reporterUserEmail");
+		String projectKey = actionRequest.getParameter("projectKey");
 		String summary = actionRequest.getParameter("summary");
 		String description = actionRequest.getParameter("description");
-		long categoryId = Long.parseLong(actionRequest.getParameter(
-			"categoryId"));
-		User reporter = null;
-		AssetCategory category = null;
+		long issueComponent = Long.parseLong(actionRequest.getParameter(
+			"issueComponent"));
+		long issueTypeId = Long.parseLong(actionRequest.getParameter(
+			"issueTypeId"));
 
-		JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-		JiraRestClient restClient = factory.createWithBasicHttpAuthentication(
-			URI.create(jiraServerUrl), jiraUserName, jiraPassword);
+		JiraRestClient restClient = jiraAuthenticate(actionRequest);
 		ProjectRestClient projectRestClient = restClient.getProjectClient();
 		Promise<Project> projectPromise = projectRestClient.getProject(
-			jiraProjectKey);
+			projectKey);
 
 		try {
 			Project project = projectPromise.get();
 
 			IssueInputBuilder issueInputBuilder = new IssueInputBuilder(
-				project.getKey(), Constants.ISSUE_TYPE_ID_IDEA);
-
-			if (Validator.isNotNull(reporterUserEmail)) {
-				reporter = UserLocalServiceUtil.fetchUserByEmailAddress(
-					companyId, reporterUserEmail);
-			}
-
-			if (Validator.isNotNull(categoryId)) {
-				category = AssetCategoryLocalServiceUtil.fetchAssetCategory(
-					categoryId);
-			}
-
-			Iterator<BasicComponent> basicComponentIterator =
-				project.getComponents().iterator();
-
-			StringBundler sbSummary = new StringBundler(2);
-			sbSummary.append("New Article Idea: ");
-			sbSummary.append(summary);
-
-			StringBundler sbDescription = new StringBundler(4);
-			sbDescription.append("Reporter: " +
-				(reporter == null ? guestName : reporter.getFullName()));
-			sbDescription.append("\n");
-			sbDescription.append("\n");
-			sbDescription.append(description);
+				projectKey, issueTypeId);
 
 			issueInputBuilder.setProjectKey(project.getKey());
-			issueInputBuilder.setSummary(sbSummary.toString());
-			issueInputBuilder.setDescription(sbDescription.toString());
+			issueInputBuilder.setSummary(summary);
+			issueInputBuilder.setDescription(description);
 
-			while (basicComponentIterator.hasNext()) {
-				BasicComponent component = basicComponentIterator.next();
-
-				if (component.getName().equals(category.getName())) {
-					issueInputBuilder.setComponents(component);
+			Iterable<BasicComponent> compIterable = project.getComponents();
+			Iterator<BasicComponent> compIterator = compIterable.iterator();
+			while (compIterator.hasNext()) {
+				BasicComponent currComponent = compIterator.next();
+				if (currComponent.getId().equals(issueComponent)) {
+					issueInputBuilder.setComponents(currComponent);
 				}
 			}
 
 			IssueInput issueInput = issueInputBuilder.build();
 			Promise<BasicIssue> basicIssuePromise =
 				restClient.getIssueClient().createIssue(issueInput);
+
+			searchJira(actionRequest, basicIssuePromise.get().getKey());
 
 			if (_log.isInfoEnabled()) {
 				_log.info("Created issue: " + basicIssuePromise.get().getKey());
@@ -259,16 +241,27 @@ public class LiferayJiraConnector extends MVCPortlet {
 				_log.error("ExecutionException:");
 				_log.error(e);
 			}
-		} catch (SystemException e) {
-			SessionErrors.add(actionRequest, "error");
-
-			if (_log.isErrorEnabled()) {
-				_log.error("SystemException:");
-				_log.error(e);
-			}
 		}
 
 		SessionMessages.add(actionRequest, "success");
+	}
+
+	private JiraRestClient jiraAuthenticate(ActionRequest actionRequest) {
+
+		PortletPreferences portletPreferences = actionRequest.getPreferences();
+
+		String jiraUserName = GetterUtil.getString(portletPreferences.getValue(
+			"jiraUserName", StringPool.BLANK));
+		String jiraPassword = GetterUtil.getString(portletPreferences.getValue(
+			"jiraPassword", StringPool.BLANK));
+		String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue(
+			"jiraServerUrl", StringPool.BLANK));
+
+		JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+		JiraRestClient restClient = factory.createWithBasicHttpAuthentication(
+			URI.create(jiraServerUrl), jiraUserName, jiraPassword);
+
+		return restClient;
 	}
 
 	private static Log _log = LogFactoryUtil.getLog(

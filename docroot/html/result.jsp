@@ -14,6 +14,7 @@ String issueUpdateDateTime = (String)request.getAttribute("issueUpdateDateTime")
 String issueEpicLink = (String)request.getAttribute("issueEpicLink");
 String issueDescription = (String)request.getAttribute("issueDescription");
 String userInput = (String)request.getAttribute("userInput");
+String jiraServerUrl = GetterUtil.getString(portletPreferences.getValue("jiraServerUrl", StringPool.BLANK));
 %>
 
 <liferay-ui:error
@@ -39,13 +40,13 @@ String userInput = (String)request.getAttribute("userInput");
 if (userInput == null) {
 %>
 
-	<b>Key:</b> <%= issueKey %><br />
+	<b>Key:</b> <a href="<%= jiraServerUrl %>/browse/<%= issueKey %>" target="_blank" ><%= issueKey %></a><br />
 	<b>Summary:</b> <%= issueSummary %><br />
 	<br />
 	<b>Type:</b> <%= issueType %><br />
 	<b>Status:</b> <%= issueStatus %><br />
 	<b>Priority:</b> <%= issuePriority %><br />
-	<b>Components:</b> <%= issueComponents %><br />
+	<b>Component/s:</b> <%= issueComponents %><br />
 	<b>Epic Link:</b> <%= issueEpicLink %><br />
 	<br />
 	<b>Assigned to:</b> <%= issueAssignee %><br />
