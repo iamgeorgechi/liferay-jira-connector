@@ -71,7 +71,8 @@ public class LiferayJiraConnector extends MVCPortlet {
 		JiraRestClient restClient = jiraAuthenticate(actionRequest);
 		IssueRestClient issueRestClient = restClient.getIssueClient();
 
-		Promise<Issue> issuePromise = issueRestClient.getIssue(key);
+		Promise<Issue> issuePromise = issueRestClient.getIssue(
+			key.toUpperCase());
 
 		try {
 			Issue issue = issuePromise.get();
@@ -133,15 +134,15 @@ public class LiferayJiraConnector extends MVCPortlet {
 		}
 		catch (ExecutionException e) {
 			if (e.getMessage().contains(Constants.ERROR_403)) {
-				actionRequest.setAttribute("userInput", key);
+				actionRequest.setAttribute("userInput", key.toUpperCase());
 				SessionErrors.add(actionRequest, "forbidden");
 			}
 			else if (e.getMessage().contains(Constants.ERROR_404)) {
-				actionRequest.setAttribute("userInput", key);
+				actionRequest.setAttribute("userInput", key.toUpperCase());
 				SessionErrors.add(actionRequest, "issueDoesNotExist");
 			}
 			else if (e.getMessage().contains(Constants.ERROR_405)) {
-				actionRequest.setAttribute("userInput", key);
+				actionRequest.setAttribute("userInput", key.toUpperCase());
 				SessionErrors.add(actionRequest, "emptyUserInput");
 			}
 		}
