@@ -5,8 +5,7 @@
 	<portlet>
 		<portlet-name>liferay-jira-connector</portlet-name>
 		<icon>/icon.png</icon>
-		<instanceable>false</instanceable>
-		<header-portlet-css>/css/main.css</header-portlet-css>
+		<configuration-action-class>com.liferay.portal.kernel.portlet.DefaultConfigurationAction</configuration-action-class>
 		<footer-portlet-javascript>/js/main.js</footer-portlet-javascript>
 		<css-class-wrapper>liferay-jira-connector-portlet</css-class-wrapper>
 	</portlet>
